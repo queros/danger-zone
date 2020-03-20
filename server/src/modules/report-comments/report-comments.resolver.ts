@@ -3,28 +3,31 @@ import {
   Args,
   Context,
   Mutation,
-  Query,
-  Resolver,
   Parent,
+  Query,
   ResolveProperty,
+  Resolver,
   Subscription,
 } from '@nestjs/graphql';
-import { ObjectId } from 'bson';
 import { PubSub } from 'apollo-server-express';
+import { ObjectId } from 'bson';
+import { PUB_SUB } from '../../utils/constants/pub-sub.const';
+import { Roles } from '../auth/decorators/roles.decorator';
 import { AuthGuard } from '../auth/guards/user-auth.guard';
 import { ICurrentUser } from '../auth/interfaces/current-user.interface';
+import { CommentLikeService } from '../comment-like/comment-like.service';
+import { LikeType } from '../comment-like/models/like-type.enum';
 import { ObjectIdScalar } from '../common/graphql-scalars/object-id.scalar';
-import { AddReportCommentInput } from './models/add-report-comment.input';
-import { EditReportCommentInput } from './models/edit-report-comment.input';
-import { ReportComment } from './models/report-comment.schema';
-import { ReportCommentsService } from './report-comments.service';
+import { GenericResponseUnion } from '../common/unions/generic-response.union';
+import { Role } from '../users/models/user-role.enum';
 import { User } from '../users/models/user.schema';
 import { UsersService } from '../users/users.service';
-import { LikeType } from '../comment-like/models/like-type.enum';
-import { CommentLikeService } from '../comment-like/comment-like.service';
-import { FindAllCommentsInput } from './models/find-all-comments.input';
+import { AddReportCommentInput } from './models/add-report-comment.input';
 import { CommentSubInput } from './models/comment-sub.input';
-import { PUB_SUB } from '../../utils/constants/pub-sub.const';
+import { EditReportCommentInput } from './models/edit-report-comment.input';
+import { FindAllCommentsInput } from './models/find-all-comments.input';
+import { ReportComment } from './models/report-comment.schema';
+import { ReportCommentsService } from './report-comments.service';
 
 const commentSubFilter = (payloadComment, variables) => {
   const pReportId: ObjectId = payloadComment.reportId;
@@ -106,6 +109,12 @@ export class ReportCommentsResolver {
     @Args('comment') reportInput: EditReportCommentInput,
   ): Promise<ReportComment> {
     return this.reportCommentsService.edit(reportInput);
+  }
+
+  @Roles(Role.Maintainer)
+  @Mutation(() => GenericResponseUnion)
+  async deleteReportComment(@Args('id') id: ObjectIdScalar) {
+    return this.reportCommentsService.delete(id);
   }
 
   @Subscription(() => ReportComment, {

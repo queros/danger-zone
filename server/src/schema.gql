@@ -106,6 +106,7 @@ type Mutation {
   editReport(comment: EditReportCommentInput!): ReportComment!
   deleteReport(id: ObjectId!): GenericResponse!
   addReportComment(comment: AddReportCommentInput!): ReportComment!
+  deleteReportComment(id: ObjectId!): GenericResponse!
   updateCommentLike(commentLike: UpdateCommentLikeInput!): ReportCommentUnion!
 }
 

@@ -1,15 +1,16 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/mongoose';
 import { ReturnModelType } from '@typegoose/typegoose';
+import { ObjectId } from 'bson';
 import { ICurrentUser } from '../auth/interfaces/current-user.interface';
+import { ObjectIdAdapt } from '../common/custom-types/object-id-adapt.type';
+import { ErrorResponse } from '../common/graphql-generic-responses/error-response.model';
+import { SuccessResponse } from '../common/graphql-generic-responses/success-response.model';
 import { ObjectIdScalar } from '../common/graphql-scalars/object-id.scalar';
 import { AddReportCommentInput } from './models/add-report-comment.input';
 import { EditReportCommentInput } from './models/edit-report-comment.input';
-import { ReportComment } from './models/report-comment.schema';
-import { ErrorResponse } from '../common/graphql-generic-responses/error-response.model';
-import { ObjectId } from 'bson';
 import { FindAllCommentsInput } from './models/find-all-comments.input';
-import { ObjectIdAdapt } from '../common/custom-types/object-id-adapt.type';
+import { ReportComment } from './models/report-comment.schema';
 
 @Injectable()
 export class ReportCommentsService {
@@ -52,16 +53,16 @@ export class ReportCommentsService {
     return comment.save();
   }
 
-  async delete(id: ObjectIdScalar): Promise<ObjectIdScalar> {
+  async delete(id: ObjectIdScalar): Promise<SuccessResponse | ErrorResponse> {
     const comment = await this.commentModel.findById(id);
     if (!comment) {
-      throw new Error(`Comment with id: "${id}" not found.`);
+      return new ErrorResponse(`Comment with id: "${id}" not found.`);
     }
 
     comment.isDeleted = true;
     comment.save();
 
-    return comment.id;
+    return new SuccessResponse('Successfully deleted');
   }
 
   async updateCommentLikes(
