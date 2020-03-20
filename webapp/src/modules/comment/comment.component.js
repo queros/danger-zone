@@ -1,10 +1,14 @@
-import React, { useState, useCallback, useContext } from 'react';
-import { Tooltip } from 'antd';
-import styled from 'styled-components';
+import { useMutation } from '@apollo/react-hooks';
+import { Icon, Tooltip } from 'antd';
 import moment from 'moment';
-import { CommentList } from '../commentList/comment-list.component';
+import React, { useCallback, useContext, useState } from 'react';
+import styled from 'styled-components';
 import { CommentContext } from '../../contexts/comment.context';
+import { ERROR_RESPONSE } from '../../utils/constants/respons-types.const';
+import { openErrorNotification } from '../../utils/notifications';
+import { CommentList } from '../commentList/comment-list.component';
 import { LikeButtons } from '../likeButtons/like-buttons.component';
+import { DELETE_COMMENT } from './comment.mutations';
 
 const HeaderSection = styled.div`
   display: flex;
@@ -49,10 +53,28 @@ const CommentListContainer = styled.div`
   padding-right: 10px;
 `;
 
-export const Comment = ({ comment, style, isNested, parentId }) => {
+const DeleteContainer = styled.span`
+  padding-right: 5px;
+`;
+
+const DeleteButton = ({ isMaintainer, id, deleteComment }) => {
+  return isMaintainer ? (
+    <DeleteContainer>
+      <Tooltip title='Wydupc'>
+        <Icon
+          type='delete'
+          onClick={() => {
+            deleteComment({ variables: { _id: id } });
+          }}
+        />
+      </Tooltip>
+    </DeleteContainer>
+  ) : null;
+};
+
+export const Comment = ({ comment, style, isNested, parentId, isMaintainer, refetch }) => {
   const commentContext = useContext(CommentContext);
   const [showAnswers, setShowAnswers] = useState(false);
-
   const onReply = useCallback(() => {
     if (!isNested) {
       setShowAnswers(true);
@@ -69,10 +91,21 @@ export const Comment = ({ comment, style, isNested, parentId }) => {
     setShowAnswers(!showAnswers);
   }, [showAnswers]);
 
+  const [deleteComment] = useMutation(DELETE_COMMENT, {
+    onCompleted: (data) => {
+      if (data.deleteReportComment.__typename === ERROR_RESPONSE) {
+        openErrorNotification(data.deleteReportComment.message);
+      } else {
+        refetch();
+      }
+    },
+  });
+
   return (
     <CommentContainer style={style}>
       <div style={{ paddingBottom: 15 }}>
         <HeaderSection>
+          <DeleteButton key={comment._id} isMaintainer={isMaintainer} id={comment._id} deleteComment={deleteComment} />
           {comment.addedBy.userName}
 
           <DateTooltip title={moment(comment.creationDate).format('YYYY-MM-DD HH:mm:ss')}>

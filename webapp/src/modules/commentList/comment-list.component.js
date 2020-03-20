@@ -1,12 +1,14 @@
-import React, { useCallback, useContext, useMemo } from 'react';
 import { useQuery, useSubscription } from '@apollo/react-hooks';
 import { Spin } from 'antd';
-import { FIND_ALL_COMMENTS } from './comment-list.query';
-import { COMMENT_ADDED, COMMENT_UPDATE } from './comment-list.subscriptions';
+import React, { useCallback, useContext, useMemo } from 'react';
+import { AuthContext } from '../../contexts/auth.context';
+import { CommentContext } from '../../contexts/comment.context';
+import { USER_ROLE } from '../../utils/enums/user-role.enum';
+import { AddComment } from '../addComment/add-comment.component';
 import { Comment } from '../comment/comment.component';
 import { ErrorBox, ErrorMessage } from '../common/error-display';
-import { AddComment } from '../addComment/add-comment.component';
-import { CommentContext } from '../../contexts/comment.context';
+import { FIND_ALL_COMMENTS } from './comment-list.query';
+import { COMMENT_ADDED, COMMENT_UPDATE } from './comment-list.subscriptions';
 
 export const CommentList = ({ reportId, parentId, isNested }) => {
   const gqlVariable = useMemo(
@@ -19,11 +21,15 @@ export const CommentList = ({ reportId, parentId, isNested }) => {
   );
 
   const commentContext = useContext(CommentContext);
-  const { loading, error, data } = useQuery(FIND_ALL_COMMENTS, {
+  const { loading, error, data, refetch } = useQuery(FIND_ALL_COMMENTS, {
     variables: gqlVariable,
   });
 
   const comments = data ? data.findAllComments : [];
+
+  const authContext = useContext(AuthContext);
+  const maintainerRoles = [USER_ROLE.Maintainer, USER_ROLE.Admin];
+  const isMaintainer = maintainerRoles.includes(authContext.payload.role);
 
   const updateCommentQuery = (client, data) => {
     client.writeQuery({
@@ -52,11 +58,11 @@ export const CommentList = ({ reportId, parentId, isNested }) => {
     },
   });
 
-  const generateCommentsList = useCallback(() => comments.map((c) => <Comment key={c._id} comment={c} isNested={isNested} parentId={parentId} />), [
-    comments,
-    isNested,
-    parentId,
-  ]);
+  const generateCommentsList = useCallback(
+    () =>
+      comments.map((c) => <Comment key={c._id} comment={c} isNested={isNested} parentId={parentId} isMaintainer={isMaintainer} refetch={refetch} />),
+    [comments, isNested, parentId, isMaintainer, refetch],
+  );
 
   if (error)
     return (
